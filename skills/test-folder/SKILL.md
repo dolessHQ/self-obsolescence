@@ -1,11 +1,11 @@
 ---
 name: test-folder
-description: testing if having a skill folder matters for installation
+description: testing if having a skill folder matters for installation after update
 ---
 
 # test-folder
 
-Instructions for the agent to follow when this skill is activated.
+Instructions have now been changed. we'll see if updates are permitted
 
 ## When to use
 
