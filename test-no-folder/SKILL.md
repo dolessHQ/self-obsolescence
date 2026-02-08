@@ -5,7 +5,7 @@ description: testing if having a skill folder matters for installation
 
 # test-no-folder
 
-Instructions for the agent to follow when this skill is activated.
+seeing how npx skills update works
 
 ## When to use
 
