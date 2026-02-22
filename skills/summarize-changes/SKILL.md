@@ -1,8 +1,8 @@
 ---
 name: summarize-changes
-description: Summarize code changes for different scopes (last-message, unstaged, staged, all-uncommitted, branch/PR-wide) and different author personas such as engineer and product manager.
+description: Summarize code changes by author type and scope. Inputs are author and scope with product plus PR as defaults.
 metadata:
-  short-description: Multi-scope, persona-based change summaries
+  short-description: Inputs author scope. Use PR or branch aliases. Defaults product plus PR
 ---
 
 # Summarize Changes
