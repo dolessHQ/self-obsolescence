@@ -1,11 +1,11 @@
 ---
-name: comprehensive-implementation-review
-description: Run a full-scale implementation review using parallel subagents: plan-alignment code review, UI manual verification with Playwright/agent-browser, technical risk analysis, and strategic architecture analysis.
+name: autistic-code-review
+description: Run a full-scale implementation review using parallel subagents: plan alignment, UI manual verification, technical and strategic analysis, plus test coverage gap closure across app and database layers.
 metadata:
-  short-description: Parallel end-to-end implementation review
+  short-description: Parallel end-to-end code review with coverage closure
 ---
 
-# Comprehensive Implementation Review
+# Autistic Code Review
 
 ## Goal
 
@@ -19,6 +19,7 @@ Use this skill when the user asks for a broad post-implementation review such as
 - reviewing uncommitted or committed changes for regressions and bugs
 - manually verifying front-end behavior with Playwright and/or agent-browser
 - assessing strategic implementation quality, not only local correctness
+- identifying test coverage gaps, adding tests, and running suites across application and database layers
 
 ## Entry criteria
 
@@ -29,6 +30,7 @@ Check these preconditions before deep review:
 - runnable environment exists for intended checks (tests/build/dev server as needed)
 - UI verification prerequisites are known (auth path, test user/role, seed state)
 - DB review prerequisites are known when relevant (local DB state, migration order, reset/test commands)
+- test command set is known (`npm test`/`vitest`, `supabase test db`, and any targeted commands)
 
 If any criterion fails, continue with available lanes and clearly report blocked coverage.
 
@@ -48,6 +50,10 @@ Gather the following before review:
 3. UI scope:
 - routes/pages to verify, pulled from plan, tests, docs, and changed files
 
+4. Test scope:
+- app-layer test framework/commands
+- DB-layer test framework/commands (for example pgTAP via `supabase test db`)
+
 If any item is missing and blocks execution, ask one short question. Otherwise, state assumptions and proceed.
 
 ## Review modes
@@ -64,7 +70,7 @@ Select one mode explicitly at the start of the review:
 
 3. `no-plan` mode
 - Use when no plan/handoff is provided.
-- Skip strict alignment claims and focus on correctness, regressions, UX behavior, and strategy quality.
+- Skip strict alignment claims and focus on correctness, regressions, UX behavior, coverage, and strategy quality.
 
 4. `self-review` mode
 - Use when the same agent that implemented changes performs the review.
@@ -86,13 +92,19 @@ Run parallel subagents with explicit, non-overlapping responsibilities:
 
 3. `technical-risk-reviewer`
 - Perform code review on changed files.
-- Prioritize bugs, regressions, data/permission risks, and test coverage gaps.
+- Prioritize bugs, regressions, data/permission risks, and design-level defects.
 - Include file references and concrete failure modes.
 
 4. `strategic-reviewer`
 - Evaluate architecture and implementation strategy.
 - Identify coupling, migration safety gaps, maintainability risks, and scalability concerns.
 - Suggest alternatives only when they materially reduce risk.
+
+5. `test-coverage-reviewer`
+- Determine test coverage for changed behavior across app and DB layers.
+- Identify missing tests and high-risk untested paths.
+- Suggest and/or create targeted tests to close gaps.
+- Run relevant suites and report results with command evidence.
 
 ## Subagent output contract
 
@@ -117,6 +129,23 @@ Build and execute a minimal matrix:
 
 When blocked, capture exact blocker and the attempted step.
 
+## Test coverage matrix
+
+Build and execute a minimal matrix:
+
+- changed component/module/function/table/function/RPC x existing tests x gap x action
+- app layer: unit/integration tests for changed behavior and boundary cases
+- DB layer: pgTAP (or equivalent) coverage for changed tables, policies, functions, and permissions
+- include at least one negative path for each changed permission-sensitive behavior
+
+Action values:
+
+- `covered` (existing tests already sufficient)
+- `add-tests` (write targeted tests)
+- `deferred` (cannot safely add in scope; justify)
+
+When `add-tests` is chosen, create focused tests and run affected suites.
+
 ## Workflow
 
 1. Establish scope and evidence
@@ -127,9 +156,9 @@ When blocked, capture exact blocker and the attempted step.
 
 2. Validate entry criteria and set timebox
 - Confirm entry criteria; note any missing prerequisites.
-- Set a review timebox and prioritize critical paths first (permissions, data integrity, primary UI flows).
+- Set a review timebox and prioritize critical paths first (permissions, data integrity, primary UI flows, high-risk untested changes).
 
-3. Dispatch the four subagents in parallel
+3. Dispatch the five subagents in parallel
 - Provide each subagent only the context needed for its lane.
 - Require each subagent to return contract-compliant output.
 
@@ -144,15 +173,21 @@ When blocked, capture exact blocker and the attempted step.
 - check grants/privileges drift and RPC exposure changes
 - check seed/test/type-generation consistency with schema changes
 
-6. Consolidate findings
-- De-duplicate overlaps across subagents.
-- Convert raw notes into severity-ranked findings.
-- Separate confirmed defects from open questions.
+6. Close test coverage gaps
+- map changed behaviors to existing tests (app + DB)
+- create targeted tests for high-risk uncovered behavior where feasible
+- run relevant app-layer and DB-layer suites
+- capture exact commands and pass/fail output summary
 
-7. Deliver review result
-- Findings first (highest severity first).
-- Then plan alignment verdict, UI verification status, technical analysis summary, strategic analysis summary, and clear next actions.
-- If timebox expires or blockers remain, provide partial verdict with explicit coverage gaps.
+7. Consolidate findings
+- de-duplicate overlaps across subagents
+- convert raw notes into severity-ranked findings
+- separate confirmed defects from open questions
+
+8. Deliver review result
+- findings first (highest severity first)
+- then alignment/reconstruction matrix, UI status, coverage status, technical analysis, strategic analysis, artifacts, and verdict
+- if timebox expires or blockers remain, provide partial verdict with explicit coverage gaps
 
 ## Severity model
 
@@ -170,6 +205,7 @@ Apply these gates before issuing the final verdict:
 - do not return `aligned` if any open `P0` or `P1` exists
 - do not return `aligned` when critical UI flows are `blocked` without mitigation evidence
 - do not return `aligned` when DB/migration changes were made but DB checklist was skipped
+- do not return `aligned` when high-risk changed behavior has unresolved coverage gaps or failing tests
 - in `no-plan` mode, return `no-plan reviewed` (never strict `aligned`)
 
 ## Output template
@@ -198,9 +234,16 @@ Intent reconstruction matrix (for `no-plan` mode):
 1. `<inferred expected behavior>` -> `<implemented evidence>` -> `<confirmed | partial | contradicted>`
 
 UI verification:
-1. `<route + area + action>` -> `<pass/fail>` -> `<observed result>`
-1. `<route + area + action>` -> `<pass/fail>` -> `<observed result>`
+1. `<route + area + action>` -> `<pass/fail/blocked>` -> `<observed result>`
+1. `<route + area + action>` -> `<pass/fail/blocked>` -> `<observed result>`
 Blockers: <none or list>
+
+Test coverage:
+1. `<changed behavior>` -> `<existing coverage>` -> `<gap>` -> `<covered | add-tests | deferred>`
+1. `<changed behavior>` -> `<existing coverage>` -> `<gap>` -> `<covered | add-tests | deferred>`
+Test execution:
+- `<command>` -> `<pass/fail>` -> `<key result>`
+- `<command>` -> `<pass/fail>` -> `<key result>`
 
 Technical analysis:
 - `<top technical risk or confirmation>`
@@ -213,7 +256,7 @@ Strategic analysis:
 Review artifacts:
 - `<commands run and key outcomes>`
 - `<ui evidence: screenshots/log notes or blocker proof>`
-- `<coverage summary: tested vs blocked>`
+- `<coverage summary: tested vs blocked vs deferred>`
 
 Verdict: `<aligned | partially aligned | not aligned | no-plan reviewed>`
 Recommended next steps:
@@ -223,14 +266,15 @@ Recommended next steps:
 
 ## Guardrails
 
-- Do not mark "aligned" unless plan claims are evidenced in diffs/tests/UI checks.
-- In `no-plan` mode, do not claim strict alignment; use verdict `no-plan reviewed`.
-- Do not bury critical defects under summary text; findings must appear first.
-- If UI cannot be fully executed, provide exact blocker and what was still validated.
-- Prefer concrete, falsifiable statements over broad judgments.
-- In `self-review` mode, call out reviewer/implementer overlap and keep evidence thresholds strict.
-- Enforce subagent output contract; request retries for incomplete outputs.
-- If review is partial due to blockers/timebox, say so explicitly in verdict context.
+- do not mark `aligned` unless plan claims are evidenced in diffs/tests/UI checks
+- in `no-plan` mode, do not claim strict alignment; use verdict `no-plan reviewed`
+- do not bury critical defects under summary text; findings must appear first
+- if UI cannot be fully executed, provide exact blocker and what was still validated
+- if tests cannot be executed, list exact missing prerequisites and impacted confidence
+- prefer concrete, falsifiable statements over broad judgments
+- in `self-review` mode, call out reviewer/implementer overlap and keep evidence thresholds strict
+- enforce subagent output contract; request retries for incomplete outputs
+- if review is partial due to blockers/timebox, say so explicitly in verdict context
 
 ## Subagent prompt pack
 
@@ -239,7 +283,7 @@ Use these prompts as-is, replacing placeholders.
 ### Parent orchestration prompt
 
 ```text
-Run a comprehensive implementation review.
+Run autistic-code-review.
 
 Context:
 - Review target: <plan path OR handoff summary OR "none">
@@ -248,14 +292,16 @@ Context:
 - Change scope: <uncommitted | commit range>
 - Repo/project path: <path>
 - UI routes in scope: <route list>
+- Test commands in scope: <app commands + DB commands>
 - Timebox: <minutes>
 
 Execution requirements:
-1) Spawn four parallel subagents:
+1) Spawn five parallel subagents:
    - plan-alignment-reviewer
    - ui-verification-reviewer
    - technical-risk-reviewer
    - strategic-reviewer
+   - test-coverage-reviewer
 2) Enforce this output contract for every subagent:
    - findings
    - evidence
@@ -263,8 +309,9 @@ Execution requirements:
    - unverified_assumptions
    - blocked_items
 3) Reject and retry any subagent output that lacks evidence.
-4) Consolidate results into one findings-first report with severity ordering.
-5) Apply sign-off gates from the skill and produce a final verdict.
+4) Require the test-coverage-reviewer to suggest/create tests for uncovered high-risk changes and run relevant suites.
+5) Consolidate results into one findings-first report with severity ordering.
+6) Apply sign-off gates from the skill and produce a final verdict.
 ```
 
 ### Prompt: `plan-alignment-reviewer`
@@ -381,10 +428,41 @@ Return exactly:
 - blocked_items: missing context that limits confidence
 ```
 
+### Prompt: `test-coverage-reviewer`
+
+```text
+You are the test-coverage-reviewer.
+
+Inputs:
+- Changed files and diff: <insert>
+- Existing tests in scope: <insert>
+- Test commands:
+  - app layer: <insert>
+  - DB layer (pgTAP or equivalent): <insert>
+- Review mode and constraints: <insert>
+
+Tasks:
+1) Build a coverage matrix:
+   - changed behavior -> existing tests -> gap -> action
+2) Identify high-risk untested behavior in app and DB layers.
+3) Suggest and create targeted tests to close feasible gaps.
+   - app layer: unit/integration tests for changed behavior and boundaries
+   - DB layer: pgTAP tests for changed tables/functions/policies/permissions
+4) Run relevant test suites after test additions/updates.
+5) Report pass/fail and any remaining uncovered high-risk behavior.
+
+Return exactly:
+- findings: severity-ranked coverage and test-quality issues
+- evidence: coverage matrix + test diffs + command results
+- confidence: high/medium/low per finding
+- unverified_assumptions: assumptions about environment/data/setup
+- blocked_items: tests not run or not creatable and why
+```
+
 ### Consolidation prompt (optional)
 
 ```text
-Consolidate four subagent outputs into one final review.
+Consolidate five subagent outputs into one final review.
 
 Rules:
 1) Findings first, highest severity first, deduplicated across lanes.
@@ -393,8 +471,9 @@ Rules:
    - plan/handoff -> plan alignment matrix
    - no-plan -> intent reconstruction matrix
 4) Include UI verification status, blockers, and coverage summary.
-5) Apply sign-off gates before verdict.
-6) Verdict allowed values:
+5) Include test coverage matrix, tests added/suggested, and execution results.
+6) Apply sign-off gates before verdict.
+7) Verdict allowed values:
    - aligned
    - partially aligned
    - not aligned
