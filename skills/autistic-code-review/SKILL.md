@@ -1,6 +1,6 @@
 ---
 name: autistic-code-review
-description: Run a full-scale implementation review using parallel subagents: plan alignment, UI manual verification, technical and strategic analysis, plus test coverage gap closure across app and database layers.
+description: Run a full-scale implementation review with parallel subagents for plan alignment, UI verification, technical and strategic analysis, and test coverage gap closure across app and database layers.
 metadata:
   short-description: Parallel end-to-end code review with coverage closure
 ---
