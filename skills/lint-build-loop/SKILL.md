@@ -19,6 +19,8 @@ Repeatedly run `npm run lint && npm run build`, fix any errors that appear, and 
 
 2. **Run the loop**
    - Execute `npm run lint && npm run build`.
+   - Run this as a single sequential shell command joined with `&&`.
+   - Do not split these steps across subagents or run them in parallel.
    - If it fails, read the error output, fix the underlying issues, and rerun the same command.
    - Continue until the command exits successfully.
 
@@ -29,3 +31,7 @@ Repeatedly run `npm run lint && npm run build`, fix any errors that appear, and 
 4. **Reporting**
    - Summarize the fixes made and confirm the final successful run.
    - Provide the exact command used and the directory it was run in.
+
+## Notes
+
+- Subagents are appropriate only for independent analysis/fix work, not for executing this ordered command chain.
