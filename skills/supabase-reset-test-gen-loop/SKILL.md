@@ -10,6 +10,8 @@ description: Iteratively run a local Supabase reset, database tests, and type ge
 1. Confirm working directory contains the intended `supabase/` config and `package.json`.
 2. Run the loop:
    - `supabase db reset && supabase test db && npm run gen-types`
+   - Run this as a single sequential shell command joined with `&&`.
+   - Do not split these steps across subagents or run them in parallel.
 3. If the command fails, read the error output, fix the underlying issue, and rerun the same command.
 4. Continue until the command completes successfully.
 5. If the same error repeats after fixes, pause and ask the user for guidance.
@@ -18,3 +20,4 @@ description: Iteratively run a local Supabase reset, database tests, and type ge
 
 - Use `supabase test db` (not `supabase db test`) for running pgTAP tests.
 - If the project requires environment setup (e.g., `supabase start`), ensure it is running before the loop.
+- Subagents are appropriate only for independent analysis/fix work, not for executing this ordered command chain.
